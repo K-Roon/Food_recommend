@@ -1,14 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:food_recommend/AdminPage.dart';
-import 'package:food_recommend/UserPage.dart';
+import 'package:food_recommend/screens/AdminPage.dart';
+import 'package:food_recommend/screens/UserPage.dart';
 
 class HomePage extends StatelessWidget {
   Future<bool> _isAdmin() async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
       return userDoc['role'] == 'admin';
     }
     return false;

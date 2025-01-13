@@ -1,6 +1,8 @@
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:food_recommend/AdminPage.dart';
 
 class UserPage extends StatefulWidget {
   @override
@@ -26,8 +28,8 @@ class _UserPageState extends State<UserPage> {
             .map((doc) => doc['name'] as String)
             .toList();
       });
+      _recommendRandomFood(); // 초기 추천
     } catch (e) {
-      // 에러 처리
       print('음식 목록을 불러오는 중 오류 발생: $e');
     }
   }
@@ -35,8 +37,13 @@ class _UserPageState extends State<UserPage> {
   void _recommendRandomFood() {
     if (_foodList.isNotEmpty) {
       final random = Random();
+      String newRecommendation;
+      do {
+        newRecommendation = _foodList[random.nextInt(_foodList.length)];
+      } while (newRecommendation == _recommendedFood);
+
       setState(() {
-        _recommendedFood = _foodList[random.nextInt(_foodList.length)];
+        _recommendedFood = newRecommendation;
       });
     } else {
       setState(() {
@@ -45,11 +52,39 @@ class _UserPageState extends State<UserPage> {
     }
   }
 
+  Future<bool> _isAdmin() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      DocumentSnapshot userDoc = await _firestore.collection('users').doc(user.uid).get();
+      return userDoc['role'] == 'admin';
+    }
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('랜덤 음식 추천'),
+        actions: [
+          FutureBuilder<bool>(
+            future: _isAdmin(),
+            builder: (context, snapshot) {
+              if (snapshot.hasData && snapshot.data == true) {
+                return IconButton(
+                  icon: Icon(Icons.admin_panel_settings),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => AdminPage()),
+                    );
+                  },
+                );
+              }
+              return SizedBox.shrink();
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -71,7 +106,7 @@ class _UserPageState extends State<UserPage> {
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: _recommendRandomFood,
-              child: Text('음식 추천 받기'),
+              child: Text('다른 식당 추천'),
             ),
           ],
         ),
