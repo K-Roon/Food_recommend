@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'AdminPage.dart';
 import 'dart:math';
+import 'RestaurantDetailsPage.dart'; // 상세 정보 페이지 추가
 
 class UserPage extends StatefulWidget {
   @override
@@ -51,7 +51,10 @@ class _UserPageState extends State<UserPage> {
           .collection('foodlist')
           .get();
 
-      return snapshot.docs.map((doc) => doc.data()).toList();
+      return snapshot.docs.map((doc) => {
+        'id': doc.id, // 문서 ID 추가
+        ...doc.data(),
+      }).toList();
     } catch (e) {
       print('음식 목록을 불러오는 중 오류 발생: $e');
       return [];
@@ -141,6 +144,14 @@ class _UserPageState extends State<UserPage> {
                       title: Text(food['name'] ?? '알 수 없음'),
                       subtitle: Text(food['address'] ?? '주소 없음'),
                       trailing: Text('${food['mainprice'] ?? 0}원'),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => RestaurantDetailsPage(food: food),
+                          ),
+                        );
+                      },
                     );
                   },
                 ),
