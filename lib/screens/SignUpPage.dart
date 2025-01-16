@@ -1,69 +1,100 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-class SignUpPage extends StatelessWidget {
+class SignUpPage extends StatefulWidget {
+  @override
+  _SignUpPageState createState() => _SignUpPageState();
+}
+
+class _SignUpPageState extends State<SignUpPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _companyCodeController = TextEditingController();
+  String? _errorMessage;
+
+  Future<void> _signUp() async {
+    if (_formKey.currentState?.validate() ?? false) {
+      try {
+        // Verify company code in Firestore
+        final companyDoc = await FirebaseFirestore.instance
+            .collection('company')
+            .doc(_companyCodeController.text.trim())
+            .get();
+
+        if (!companyDoc.exists) {
+          setState(() {
+            _errorMessage = '유효하지 않은 회사 코드입니다.';
+          });
+          return;
+        }
+
+        // Register user in Firebase Authentication
+        final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
+
+        // Add user data to Firestore
+        await FirebaseFirestore.instance.collection('member').add({
+          'email': _emailController.text.trim(),
+          'company': _companyCodeController.text.trim(),
+          'name': userCredential.user?.displayName ?? '사용자',
+        });
+
+        Navigator.pop(context); // Return to login page on success
+      } catch (e) {
+        setState(() {
+          _errorMessage = e.toString();
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('회원가입'),
-      ),
+      appBar: AppBar(title: Text('회원가입')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 기존 회원가입 입력 필드와 버튼
-            TextField(
-              decoration: InputDecoration(
-                labelText: '이메일',
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextFormField(
+                controller: _emailController,
+                decoration: InputDecoration(labelText: '이메일'),
+                validator: (value) => value?.isEmpty ?? true ? '이메일을 입력하세요.' : null,
               ),
-            ),
-            SizedBox(height: 16),
-            TextField(
-              decoration: InputDecoration(
-                labelText: '비밀번호',
+              SizedBox(height: 16),
+              TextFormField(
+                controller: _passwordController,
+                decoration: InputDecoration(labelText: '비밀번호'),
+                obscureText: true,
+                validator: (value) => value?.isEmpty ?? true ? '비밀번호를 입력하세요.' : null,
               ),
-              obscureText: true,
-            ),
-            SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                // 회원가입 로직 실행
-              },
-              child: Text('회원가입'),
-            ),
-            SizedBox(height: 16),
-
-            // 추가된 인증코드 생성 버튼
-            ElevatedButton(
-              onPressed: () {
-                final code = _generateAuthCode();
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: Text('인증코드'),
-                    content: Text('인증코드: $code'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: Text('확인'),
-                      ),
-                    ],
-                  ),
-                );
-              },
-              child: Text('유베이스 인증코드 생성'),
-            ),
-          ],
+              SizedBox(height: 16),
+              TextFormField(
+                controller: _companyCodeController,
+                decoration: InputDecoration(labelText: '회사 코드'),
+                validator: (value) => value?.isEmpty ?? true ? '회사 코드를 입력하세요.' : null,
+              ),
+              SizedBox(height: 16),
+              if (_errorMessage != null)
+                Text(
+                  _errorMessage!,
+                  style: TextStyle(color: Colors.red),
+                ),
+              ElevatedButton(
+                onPressed: _signUp,
+                child: Text('회원가입'),
+              ),
+            ],
+          ),
         ),
       ),
     );
-  }
-
-  // 인증코드 생성 함수
-  String _generateAuthCode() {
-    const allowedChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    return List.generate(6, (index) => allowedChars[(allowedChars.length * index / 6).toInt()])
-        .join();
   }
 }

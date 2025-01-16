@@ -1,2 +1,2 @@
 # Food_recommend
- 식당 추천 앱
+ 음식 추천 앱
