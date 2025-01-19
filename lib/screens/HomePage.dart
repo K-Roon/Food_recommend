@@ -1,38 +1,47 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:food_recommend/screens/AdminPage.dart';
-import 'package:food_recommend/screens/UserPage.dart';
+import 'UserPage.dart';
 
-class HomePage extends StatelessWidget {
-  Future<bool> _isAdmin() async {
-    User? user = FirebaseAuth.instance.currentUser;
+class HomePage extends StatefulWidget {
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  String? companyCode;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCompanyCode();
+  }
+
+  Future<void> _fetchCompanyCode() async {
+    final user = FirebaseAuth.instance.currentUser;
+
     if (user != null) {
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
+      final snapshot = await FirebaseFirestore.instance
+          .collection('member')
+          .where('email', isEqualTo: user.email)
           .get();
-      return userDoc['role'] == 'admin';
+
+      if (snapshot.docs.isNotEmpty) {
+        setState(() {
+          companyCode = snapshot.docs.first.data()['company'];
+        });
+      }
     }
-    return false;
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: _isAdmin(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return CircularProgressIndicator();
-        }
-        if (snapshot.hasData && snapshot.data == true) {
-          // 관리자 화면
-          return AdminPage();
-        } else {
-          // 일반 사용자 화면
-          return UserPage();
-        }
-      },
-    );
+    if (companyCode == null) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()), // 회사 코드 로딩 중
+      );
+    }
+
+    return UserPage(); // companyCode 전달
   }
 }

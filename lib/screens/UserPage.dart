@@ -2,7 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'AdminPage.dart';
-import 'UserInfoPage.dart';
+import 'UserInfoPage.dart'; // 사용자 정보 페이지 추가
+import 'RestaurantDetailsPage.dart'; // 상세 정보 페이지 추가
 import 'dart:math';
 
 class UserPage extends StatefulWidget {
@@ -52,7 +53,10 @@ class _UserPageState extends State<UserPage> {
           .collection('foodlist')
           .get();
 
-      return snapshot.docs.map((doc) => doc.data()).toList();
+      return snapshot.docs.map((doc) => {
+        'id': doc.id, // 문서 ID 추가
+        ...doc.data(),
+      }).toList();
     } catch (e) {
       print('음식 목록을 불러오는 중 오류 발생: $e');
       return [];
@@ -93,12 +97,22 @@ class _UserPageState extends State<UserPage> {
     );
   }
 
+  Future<void> _refreshPage() async {
+    // 새로고침 동작: 사용자 데이터 및 음식 리스트 다시 로드
+    await _fetchUserData();
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('음식 리스트'),
         actions: [
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: _refreshPage, // 새로고침 버튼
+          ),
           PopupMenuButton(
             onSelected: (value) {
               if (value == 'admin' && isAdmin) {
@@ -114,15 +128,15 @@ class _UserPageState extends State<UserPage> {
               }
             },
             itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'userinfo',
-                child: Text('내 정보 보기'),
-              ),
               if (isAdmin)
                 PopupMenuItem(
                   value: 'admin',
                   child: Text('관리자 페이지'),
                 ),
+              PopupMenuItem(
+                value: 'userinfo',
+                child: Text('사용자 정보 페이지'),
+              ),
             ],
           ),
         ],
@@ -151,7 +165,13 @@ class _UserPageState extends State<UserPage> {
                       subtitle: Text(food['address'] ?? '주소 없음'),
                       trailing: Text('${food['mainprice'] ?? 0}원'),
                       onTap: () {
-                        // 상세 정보 페이지로 이동 가능
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                RestaurantDetailsPage(food: food),
+                          ),
+                        );
                       },
                     );
                   },

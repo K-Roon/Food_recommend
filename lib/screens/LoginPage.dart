@@ -43,6 +43,7 @@ class _LoginPageState extends State<LoginPage> {
               TextFormField(
                 controller: _emailController,
                 decoration: InputDecoration(labelText: '이메일'),
+                keyboardType: TextInputType.emailAddress, // 이메일 입력용 키보드
                 validator: (value) => value?.isEmpty ?? true ? '이메일을 입력하세요.' : null,
               ),
               SizedBox(height: 16),

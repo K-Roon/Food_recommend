@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class AdminPage extends StatefulWidget {
@@ -8,11 +9,41 @@ class AdminPage extends StatefulWidget {
 
 class _AdminPageState extends State<AdminPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  String? companyCode;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this); // 3개의 탭
+    _tabController = TabController(length: 3, vsync: this);
+    _fetchCompanyCode(); // 로그인한 사용자의 회사 코드 가져오기
+  }
+
+  Future<void> _fetchCompanyCode() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+
+      if (user != null) {
+        final snapshot = await FirebaseFirestore.instance
+            .collection('member')
+            .where('email', isEqualTo: user.email)
+            .get();
+
+        if (snapshot.docs.isNotEmpty) {
+          final data = snapshot.docs.first.data();
+          setState(() {
+            companyCode = data['company']; // 회사 코드 설정
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('로그인된 사용자의 회사 정보를 찾을 수 없습니다.')),
+          );
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('회사 코드 불러오기 오류: $e')),
+      );
+    }
   }
 
   @override
@@ -23,13 +54,20 @@ class _AdminPageState extends State<AdminPage> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
+    if (companyCode == null) {
+      return Scaffold(
+        appBar: AppBar(title: Text('관리자 페이지')),
+        body: Center(child: CircularProgressIndicator()), // 회사 코드 로딩 중
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text('관리자 페이지'),
         bottom: TabBar(
           controller: _tabController,
           tabs: [
-            Tab(text: '식당 관리'),
+            Tab(text: '음식 관리'),
             Tab(text: '회원 관리'),
             Tab(text: '회사 관리'),
           ],
@@ -38,7 +76,7 @@ class _AdminPageState extends State<AdminPage> with SingleTickerProviderStateMix
       body: TabBarView(
         controller: _tabController,
         children: [
-          _RestaurantManagementTab(),
+          _RestaurantManagementTab(companyCode: companyCode!),
           _MemberManagementTab(),
           _CompanyManagementTab(),
         ],
@@ -47,10 +85,15 @@ class _AdminPageState extends State<AdminPage> with SingleTickerProviderStateMix
   }
 }
 
-// 식당 관리 탭
+// 음식 관리 탭 (CRUD)
 class _RestaurantManagementTab extends StatefulWidget {
+  final String companyCode;
+
+  const _RestaurantManagementTab({required this.companyCode});
+
   @override
-  _RestaurantManagementTabState createState() => _RestaurantManagementTabState();
+  _RestaurantManagementTabState createState() =>
+      _RestaurantManagementTabState();
 }
 
 class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
@@ -70,21 +113,26 @@ class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
       return;
     }
 
-    await FirebaseFirestore.instance.collection('foods').add({
-      'name': _nameController.text.trim(),
-      'address': _addressController.text.trim(),
-      'mainmenu': _mainMenuController.text.trim(),
-      'mainprice': int.tryParse(_mainPriceController.text.trim()) ?? 0,
-    });
-
-    _clearFields();
-  }
-
-  void _clearFields() {
-    _nameController.clear();
-    _addressController.clear();
-    _mainMenuController.clear();
-    _mainPriceController.clear();
+    try {
+      await FirebaseFirestore.instance
+          .collection('foods')
+          .doc(widget.companyCode)
+          .collection('foodlist')
+          .add({
+        'name': _nameController.text.trim(),
+        'address': _addressController.text.trim(),
+        'mainmenu': _mainMenuController.text.trim(),
+        'mainprice': int.tryParse(_mainPriceController.text.trim()) ?? 0,
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('음식 추가 완료!')),
+      );
+      _clearFields();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('오류 발생: $e')),
+      );
+    }
   }
 
   Future<void> _editRestaurant(String id, Map<String, dynamic> currentData) async {
@@ -126,14 +174,28 @@ class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
           ),
           ElevatedButton(
             onPressed: () async {
-              await FirebaseFirestore.instance.collection('foods').doc(id).update({
-                'name': _nameController.text.trim(),
-                'address': _addressController.text.trim(),
-                'mainmenu': _mainMenuController.text.trim(),
-                'mainprice': int.tryParse(_mainPriceController.text.trim()) ?? 0,
-              });
-              Navigator.pop(context);
-              _clearFields();
+              try {
+                await FirebaseFirestore.instance
+                    .collection('foods')
+                    .doc(widget.companyCode)
+                    .collection('foodlist')
+                    .doc(id)
+                    .update({
+                  'name': _nameController.text.trim(),
+                  'address': _addressController.text.trim(),
+                  'mainmenu': _mainMenuController.text.trim(),
+                  'mainprice': int.tryParse(_mainPriceController.text.trim()) ?? 0,
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('수정 완료!')),
+                );
+                Navigator.pop(context);
+                _clearFields();
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('오류 발생: $e')),
+                );
+              }
             },
             child: Text('수정'),
           ),
@@ -143,7 +205,28 @@ class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
   }
 
   Future<void> _deleteRestaurant(String id) async {
-    await FirebaseFirestore.instance.collection('foods').doc(id).delete();
+    try {
+      await FirebaseFirestore.instance
+          .collection('foods')
+          .doc(widget.companyCode)
+          .collection('foodlist')
+          .doc(id)
+          .delete();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('삭제 완료!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('오류 발생: $e')),
+      );
+    }
+  }
+
+  void _clearFields() {
+    _nameController.clear();
+    _addressController.clear();
+    _mainMenuController.clear();
+    _mainPriceController.clear();
   }
 
   @override
@@ -191,7 +274,11 @@ class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
         ),
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('foods').snapshots(),
+            stream: FirebaseFirestore.instance
+                .collection('foods')
+                .doc(widget.companyCode)
+                .collection('foodlist')
+                .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return Center(child: CircularProgressIndicator());
@@ -204,7 +291,8 @@ class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
                   final data = doc.data() as Map<String, dynamic>;
                   return ListTile(
                     title: Text(data['name'] ?? '알 수 없음'),
-                    subtitle: Text('주소: ${data['address'] ?? ''}\n주요 메뉴: ${data['mainmenu'] ?? ''}\n가격: ${data['mainprice'] ?? 0}원'),
+                    subtitle: Text(
+                        '주소: ${data['address'] ?? ''}\n메뉴: ${data['mainmenu'] ?? ''}\n가격: ${data['mainprice'] ?? 0}원'),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -233,18 +321,128 @@ class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
   }
 }
 
-// 회원 관리 탭
+// 회원 관리 (RUD)
 class _MemberManagementTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Center(child: Text('회원 관리 탭'));
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('member').snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return Center(child: Text('등록된 회원이 없습니다.'));
+        }
+
+        return ListView(
+          children: snapshot.data!.docs.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            return ListTile(
+              title: Text(data['name'] ?? '알 수 없음'),
+              subtitle: Text(
+                  '이메일: ${data['email'] ?? ''}\n회사 코드: ${data['company'] ?? ''}'),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.edit),
+                    onPressed: () {
+                      // 수정 로직 추가
+                    },
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.delete),
+                    onPressed: () {
+                      FirebaseFirestore.instance.collection('member').doc(doc.id).delete();
+                    },
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
   }
 }
 
-// 회사 관리 탭
+// 회사 관리 탭 (CRUD)
 class _CompanyManagementTab extends StatelessWidget {
+  final TextEditingController companyCodeController = TextEditingController();
+  final TextEditingController companyNameController = TextEditingController();
+
+  Future<void> _addCompany() async {
+    if (companyCodeController.text.isEmpty || companyNameController.text.isEmpty) {
+      return;
+    }
+    await FirebaseFirestore.instance
+        .collection('company')
+        .doc(companyCodeController.text.trim())
+        .set({
+      'name': companyNameController.text.trim(),
+    });
+    companyCodeController.clear();
+    companyNameController.clear();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Center(child: Text('회사 관리 탭'));
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: companyCodeController,
+                  decoration: InputDecoration(labelText: '회사 코드'),
+                ),
+              ),
+              Expanded(
+                child: TextField(
+                  controller: companyNameController,
+                  decoration: InputDecoration(labelText: '회사 이름'),
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.add),
+                onPressed: _addCompany,
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance.collection('company').snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(child: CircularProgressIndicator());
+              }
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return Center(child: Text('등록된 회사가 없습니다.'));
+              }
+
+              return ListView(
+                children: snapshot.data!.docs.map((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  return ListTile(
+                    title: Text(data['name'] ?? '알 수 없음'),
+                    subtitle: Text('코드: ${doc.id}'),
+                    trailing: IconButton(
+                      icon: Icon(Icons.delete),
+                      onPressed: () {
+                        FirebaseFirestore.instance.collection('company').doc(doc.id).delete();
+                      },
+                    ),
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ),
+      ],
+    );
   }
 }

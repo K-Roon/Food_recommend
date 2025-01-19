@@ -26,12 +26,13 @@ class _SignUpPageState extends State<SignUpPage> {
 
         final user = userCredential.user;
 
-        // Firestore의 `member` 컬렉션에 데이터 추가
+        // Firestore의 'member' 컬렉션에 데이터 추가
         await FirebaseFirestore.instance.collection('member').add({
           'email': user?.email ?? '',
           'name': _nameController.text.trim(),
           'company': _companyCodeController.text.trim(),
-          'isAdmin': false, // 기본적으로 관리자가 아님
+          'isAdmin': false,
+          'admin_level': null
         });
 
         // 회원가입 성공 시 로그인 페이지로 이동
@@ -45,6 +46,17 @@ class _SignUpPageState extends State<SignUpPage> {
         });
       }
     }
+  }
+
+  String? _validateEmail(String? value) {
+    // 이메일 형식 정규식
+    final emailRegex = RegExp(r'^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+    if (value == null || value.isEmpty) {
+      return '이메일을 입력하세요.';
+    } else if (!emailRegex.hasMatch(value)) {
+      return '올바른 이메일 형식을 입력하세요.';
+    }
+    return null;
   }
 
   @override
@@ -67,7 +79,8 @@ class _SignUpPageState extends State<SignUpPage> {
               TextFormField(
                 controller: _emailController,
                 decoration: InputDecoration(labelText: '이메일'),
-                validator: (value) => value?.isEmpty ?? true ? '이메일을 입력하세요.' : null,
+                keyboardType: TextInputType.emailAddress, // 이메일 입력용 키보드
+                validator: _validateEmail, // 이메일 검증 함수 추가
               ),
               SizedBox(height: 16),
               TextFormField(
@@ -91,6 +104,12 @@ class _SignUpPageState extends State<SignUpPage> {
               ElevatedButton(
                 onPressed: _signUp,
                 child: Text('회원가입'),
+              ),
+              SizedBox(height: 16),
+              Text(
+                "회원가입을 하시게 되면, 약관 및 개인정보제공에 동의하게 되는 것 입니다",
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
             ],
           ),
