@@ -11,39 +11,34 @@ class _SignUpPageState extends State<SignUpPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _nameController = TextEditingController();
   final _companyCodeController = TextEditingController();
   String? _errorMessage;
 
   Future<void> _signUp() async {
     if (_formKey.currentState?.validate() ?? false) {
       try {
-        // Verify company code in Firestore
-        final companyDoc = await FirebaseFirestore.instance
-            .collection('company')
-            .doc(_companyCodeController.text.trim())
-            .get();
-
-        if (!companyDoc.exists) {
-          setState(() {
-            _errorMessage = '유효하지 않은 회사 코드입니다.';
-          });
-          return;
-        }
-
-        // Register user in Firebase Authentication
+        // Firebase Authentication에 사용자 추가
         final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
 
-        // Add user data to Firestore
+        final user = userCredential.user;
+
+        // Firestore의 `member` 컬렉션에 데이터 추가
         await FirebaseFirestore.instance.collection('member').add({
-          'email': _emailController.text.trim(),
+          'email': user?.email ?? '',
+          'name': _nameController.text.trim(),
           'company': _companyCodeController.text.trim(),
-          'name': userCredential.user?.displayName ?? '사용자',
+          'isAdmin': false, // 기본적으로 관리자가 아님
         });
 
-        Navigator.pop(context); // Return to login page on success
+        // 회원가입 성공 시 로그인 페이지로 이동
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('회원가입이 완료되었습니다. 로그인하세요.')),
+        );
+        Navigator.pop(context);
       } catch (e) {
         setState(() {
           _errorMessage = e.toString();
@@ -63,6 +58,12 @@ class _SignUpPageState extends State<SignUpPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              TextFormField(
+                controller: _nameController,
+                decoration: InputDecoration(labelText: '이름'),
+                validator: (value) => value?.isEmpty ?? true ? '이름을 입력하세요.' : null,
+              ),
+              SizedBox(height: 16),
               TextFormField(
                 controller: _emailController,
                 decoration: InputDecoration(labelText: '이메일'),

@@ -41,51 +41,13 @@ class UserInfoPage extends StatelessWidget {
         await _auth.signOut();
 
         // 메인 페이지로 이동
-        Navigator.of(context)
-            .pushNamedAndRemoveUntil('/login', (route) => false);
+        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
       }
     } catch (e) {
-      // Firebase Authentication 에러 처리
-      if (e.toString().contains('requires-recent-login')) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('오래된 인증입니다. 다시 로그인 후 시도해주세요.')),
-        );
-        // 사용자에게 재인증을 요청
-        await _reauthenticateUser(context);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('회원 탈퇴 중 오류가 발생했습니다: $e')),
-        );
-      }
-    }
-  }
-
-  Future<void> _reauthenticateUser(BuildContext context) async {
-    try {
-      final user = _auth.currentUser;
-
-      if (user != null) {
-        final email = user.email!;
-        final credential = EmailAuthProvider.credential(
-          email: email,
-          password: '비밀번호를 재인증해야 합니다.',
-        );
-
-        await user.reauthenticateWithCredential(credential);
-
-        // 재인증 후 회원 탈퇴 재시도
-        final snapshot = await FirebaseFirestore.instance
-            .collection('member')
-            .where('email', isEqualTo: email)
-            .get();
-
-        if (snapshot.docs.isNotEmpty) {
-          await _deleteAccount(context, snapshot.docs.first.id);
-        }
-      }
-    } catch (e) {
+      // 에러 메시지를 안전하게 표시
+      if (Navigator.canPop(context)) Navigator.pop(context); // 다이얼로그 닫기
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('재인증 실패: $e')),
+        SnackBar(content: Text('회원 탈퇴 중 오류가 발생했습니다: $e')),
       );
     }
   }
@@ -104,6 +66,7 @@ class UserInfoPage extends StatelessWidget {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
+              // 삭제 작업을 진행하기 전에 다이얼로그를 닫기
               Navigator.pop(context);
               await _deleteAccount(context, memberId);
             },
@@ -137,15 +100,10 @@ class UserInfoPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('이름: ${userInfo['name'] ?? '알 수 없음'}',
-                    style: TextStyle(fontSize: 20)),
-                SizedBox(height: 10),
-                Text('이메일: ${userInfo['email'] ?? '알 수 없음'}'),
-                SizedBox(height: 10),
-                Text('소속 회사: ${userInfo['company'] ?? '알 수 없음'}'),
-                SizedBox(height: 10),
                 Text(
-                    '관리자 여부: ${userInfo['isAdmin'] == true ? '관리자' : '일반 사용자'}'),
+                  '이름: ${userInfo['name'] ?? '알 수 없음'}',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
                 Spacer(),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
