@@ -2,8 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'AdminPage.dart';
+import 'UserInfoPage.dart';
 import 'dart:math';
-import 'RestaurantDetailsPage.dart'; // 상세 정보 페이지 추가
 
 class UserPage extends StatefulWidget {
   @override
@@ -52,10 +52,7 @@ class _UserPageState extends State<UserPage> {
           .collection('foodlist')
           .get();
 
-      return snapshot.docs.map((doc) => {
-        'id': doc.id, // 문서 ID 추가
-        ...doc.data(),
-      }).toList();
+      return snapshot.docs.map((doc) => doc.data()).toList();
     } catch (e) {
       print('음식 목록을 불러오는 중 오류 발생: $e');
       return [];
@@ -101,26 +98,34 @@ class _UserPageState extends State<UserPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('음식 리스트'),
-        actions: isAdmin
-            ? [
+        actions: [
           PopupMenuButton(
             onSelected: (value) {
-              if (value == 'admin') {
+              if (value == 'admin' && isAdmin) {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => AdminPage()),
+                );
+              } else if (value == 'userinfo') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => UserInfoPage()),
                 );
               }
             },
             itemBuilder: (context) => [
               PopupMenuItem(
-                value: 'admin',
-                child: Text('관리자 페이지'),
+                value: 'userinfo',
+                child: Text('내 정보 보기'),
               ),
+              if (isAdmin)
+                PopupMenuItem(
+                  value: 'admin',
+                  child: Text('관리자 페이지'),
+                ),
             ],
           ),
-        ]
-            : null,
+        ],
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _fetchFoodList(),
@@ -146,12 +151,7 @@ class _UserPageState extends State<UserPage> {
                       subtitle: Text(food['address'] ?? '주소 없음'),
                       trailing: Text('${food['mainprice'] ?? 0}원'),
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => RestaurantDetailsPage(food: food),
-                          ),
-                        );
+                        // 상세 정보 페이지로 이동 가능
                       },
                     );
                   },
