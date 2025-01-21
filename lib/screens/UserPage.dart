@@ -84,8 +84,8 @@ class _UserPageState extends State<UserPage> {
         content: Text(
           '추천 음식점: $foodName\n'
               '주요 메뉴: $mainMenu\n'
-              '가격: $mainPrice원'
-              '주소: $foodAddress\n',
+              '가격: $mainPrice원\n'
+              '주소: $foodAddress',
         ),
         actions: [
           TextButton(
