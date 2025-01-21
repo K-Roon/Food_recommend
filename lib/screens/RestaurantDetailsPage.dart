@@ -24,8 +24,6 @@ class RestaurantDetailsPage extends StatelessWidget {
             Text('주요 메뉴: ${food['mainmenu'] ?? '메뉴 정보 없음'}'),
             SizedBox(height: 10),
             Text('가격: ${food['mainprice'] ?? '가격 정보 없음'}원'),
-            SizedBox(height: 10),
-            Text('랜덤 번호: ${food['randnum'] ?? 'N/A'}'),
           ],
         ),
       ),

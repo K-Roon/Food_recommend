@@ -345,18 +345,18 @@ class _MemberManagementTab extends StatelessWidget {
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  IconButton(
-                    icon: Icon(Icons.edit),
-                    onPressed: () {
-                      // 수정 로직 추가
-                    },
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.delete),
-                    onPressed: () {
-                      FirebaseFirestore.instance.collection('member').doc(doc.id).delete();
-                    },
-                  ),
+                  // IconButton(
+                  //   icon: Icon(Icons.edit),
+                  //   onPressed: () {
+                  //     // 수정 로직 추가
+                  //   },
+                  // ),
+                  // IconButton(
+                  //   icon: Icon(Icons.delete),
+                  //   onPressed: () {
+                  //     FirebaseFirestore.instance.collection('member').doc(doc.id).delete();
+                  //   },
+                  // ),
                 ],
               ),
             );

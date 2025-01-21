@@ -83,9 +83,9 @@ class _UserPageState extends State<UserPage> {
         title: Text('랜덤 추천 결과'),
         content: Text(
           '추천 음식점: $foodName\n'
-              '주소: $foodAddress\n'
               '주요 메뉴: $mainMenu\n'
-              '가격: $mainPrice원',
+              '가격: $mainPrice원'
+              '주소: $foodAddress\n',
         ),
         actions: [
           TextButton(
@@ -161,8 +161,8 @@ class _UserPageState extends State<UserPage> {
                   itemBuilder: (context, index) {
                     final food = foodList[index];
                     return ListTile(
-                      title: Text(food['name'] ?? '알 수 없음'),
-                      subtitle: Text(food['address'] ?? '주소 없음'),
+                      title: Text(food['mainmenu'] ?? '알 수 없음'),
+                      subtitle: Text(food['name'] ?? '주소 없음'),
                       trailing: Text('${food['mainprice'] ?? 0}원'),
                       onTap: () {
                         Navigator.push(
