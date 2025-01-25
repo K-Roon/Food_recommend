@@ -58,7 +58,7 @@ class _SignUpPageState extends State<SignUpPage> {
 
         // 회원가입 성공 시 로그인 페이지로 이동
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('회원가입이 완료되었습니다. 로그인하세요.')),
+          SnackBar(content: Text('회원가입이 완료되었습니다.')),
         );
         Navigator.pop(context);
       } catch (e) {

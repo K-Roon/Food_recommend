@@ -1,5 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:food_recommend/screens/LoginPage.dart';
 import 'package:food_recommend/services/AuthenticationWrapper.dart';
 
 void main() async {
@@ -13,6 +15,15 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: '랜덤 음식 추천 앱',
+      locale: Locale('ko', 'KR'), // 기본 언어를 한국어로 설정
+      supportedLocales: [
+        Locale('ko', 'KR'), // 한국어
+      ],
+      localizationsDelegates: [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       theme: ThemeData(
         primarySwatch: Colors.blue,
         brightness: Brightness.light, // 라이트 모드 설정
@@ -23,6 +34,9 @@ class MyApp extends StatelessWidget {
       ),
       themeMode: ThemeMode.system, // 시스템 설정에 따라 자동 변경
       home: AuthenticationWrapper(),
+      routes: {
+        '/login': (context) => LoginPage(),
+      },
     );
   }
 }
