@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 class UserInfoPage extends StatelessWidget {
@@ -23,31 +24,49 @@ class UserInfoPage extends StatelessWidget {
     return {};
   }
 
+  Future<void> _logout(BuildContext context) async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('로그아웃'),
+        content: Text('로그아웃을 하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            onLongPress: () async {
+              await _auth.signOut();
+              Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+            },
+            child: Text('여기를 길게 눌러 로그아웃'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _deleteAccount(BuildContext context, String memberId) async {
     try {
       final user = _auth.currentUser;
 
       if (user != null) {
-        // Firestore 데이터 삭제
-        await FirebaseFirestore.instance
-            .collection('member')
-            .doc(memberId)
-            .delete();
+        // Firestore에서 멤버 데이터 삭제
+        await FirebaseFirestore.instance.collection('member').doc(memberId).delete();
 
         // Firebase Authentication 계정 삭제
         await user.delete();
 
-        // 로그아웃 처리
+        // 로그아웃 처리 후 로그인 화면으로 이동
         await _auth.signOut();
-
-        // 메인 페이지로 이동
         Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
       }
     } catch (e) {
-      // 에러 메시지를 안전하게 표시
       if (Navigator.canPop(context)) Navigator.pop(context); // 다이얼로그 닫기
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('회원 탈퇴 중 오류가 발생했습니다: $e')),
+        SnackBar(content: Text('회원탈퇴 중 오류가 발생했습니다: $e')),
       );
     }
   }
@@ -64,13 +83,110 @@ class UserInfoPage extends StatelessWidget {
             child: Text('취소'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () async {
-              // 삭제 작업을 진행하기 전에 다이얼로그를 닫기
-              Navigator.pop(context);
+            onPressed: () => Navigator.pop(context),
+            onLongPress: () async {
+              Navigator.pop(context); // 다이얼로그 닫기
               await _deleteAccount(context, memberId);
             },
-            child: Text('회원 탈퇴'),
+            child: Text('여기를 길게 눌러 회원 탈퇴'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _changePassword(BuildContext context) async {
+    final TextEditingController currentPasswordController =
+    TextEditingController();
+    final TextEditingController newPasswordController =
+    TextEditingController();
+    final TextEditingController confirmNewPasswordController =
+    TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('비밀번호 변경'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: currentPasswordController,
+              decoration: InputDecoration(labelText: '현재 비밀번호 입력'),
+              obscureText: true,
+            ),
+            TextField(
+              controller: newPasswordController,
+              decoration: InputDecoration(labelText: '새 비밀번호 입력'),
+              obscureText: true,
+            ),
+            TextField(
+              controller: confirmNewPasswordController,
+              decoration: InputDecoration(labelText: '새 비밀번호 확인'),
+              obscureText: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final currentPassword = currentPasswordController.text.trim();
+              final newPassword = newPasswordController.text.trim();
+              final confirmNewPassword =
+              confirmNewPasswordController.text.trim();
+
+              if (currentPassword.isEmpty ||
+                  newPassword.isEmpty ||
+                  confirmNewPassword.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('모든 필드를 입력하세요.')),
+                );
+                return;
+              }
+
+              if (newPassword != confirmNewPassword) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('새 비밀번호가 일치하지 않습니다.')),
+                );
+                return;
+              }
+
+              if (newPassword.length < 6) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('비밀번호는 최소 6자 이상이어야 합니다.')),
+                );
+                return;
+              }
+
+              try {
+                final user = _auth.currentUser;
+                final email = user?.email;
+
+                final credential = EmailAuthProvider.credential(
+                  email: email!,
+                  password: currentPassword,
+                );
+
+                await user?.reauthenticateWithCredential(credential);
+
+                await user?.updatePassword(newPassword);
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('비밀번호가 성공적으로 변경되었습니다.')),
+                );
+              } catch (e) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('비밀번호 변경 중 오류가 발생했습니다: $e')),
+                );
+              }
+            },
+            child: Text('변경'),
           ),
         ],
       ),
@@ -104,17 +220,45 @@ class UserInfoPage extends StatelessWidget {
                   '이름: ${userInfo['name'] ?? '알 수 없음'}',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
+                SizedBox(height: 8),
+                Text(
+                  '이메일: ${userInfo['email'] ?? '알 수 없음'}',
+                  style: TextStyle(fontSize: 16),
+                ),
+                SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    _changePassword(context);
+                  },
+                  child: Text('비밀번호 변경'),
+                ),
                 Spacer(),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    backgroundColor: Colors.red,
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                  ),
                   onPressed: () {
-                    _confirmAccountDeletion(context, userInfo['id']);
+                    _logout(context);
                   },
-                  child: Text('회원 탈퇴'),
+                  child: Text('로그아웃'),
+                ),
+                SizedBox(height: 16),
+                Text.rich(
+                  TextSpan(
+                    text: "회원탈퇴를 하시려면 ",
+                    children: [
+                      TextSpan(
+                        text: "여기",
+                        style: TextStyle(
+                          decoration: TextDecoration.underline,
+                          color: Colors.blue,
+                        ),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () {
+                            _confirmAccountDeletion(context, userInfo['id']);
+                          },
+                      ),
+                      TextSpan(text: "를 눌러주세요."),
+                    ],
+                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
                 ),
               ],
             ),

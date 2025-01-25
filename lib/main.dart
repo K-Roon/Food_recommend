@@ -15,7 +15,13 @@ class MyApp extends StatelessWidget {
       title: '랜덤 음식 추천 앱',
       theme: ThemeData(
         primarySwatch: Colors.blue,
+        brightness: Brightness.light, // 라이트 모드 설정
       ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark, // 다크 모드 설정
+        primarySwatch: Colors.blue,
+      ),
+      themeMode: ThemeMode.system, // 시스템 설정에 따라 자동 변경
       home: AuthenticationWrapper(),
     );
   }

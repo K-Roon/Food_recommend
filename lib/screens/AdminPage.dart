@@ -10,15 +10,16 @@ class AdminPage extends StatefulWidget {
 class _AdminPageState extends State<AdminPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   String? companyCode;
+  bool isAdmin = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _fetchCompanyCode(); // 로그인한 사용자의 회사 코드 가져오기
+    _fetchUserDetails();
   }
 
-  Future<void> _fetchCompanyCode() async {
+  Future<void> _fetchUserDetails() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
 
@@ -31,17 +32,18 @@ class _AdminPageState extends State<AdminPage> with SingleTickerProviderStateMix
         if (snapshot.docs.isNotEmpty) {
           final data = snapshot.docs.first.data();
           setState(() {
-            companyCode = data['company']; // 회사 코드 설정
+            companyCode = data['company'];
+            isAdmin = data['isAdmin'] ?? false;
           });
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('로그인된 사용자의 회사 정보를 찾을 수 없습니다.')),
+            SnackBar(content: Text('로그인된 사용자의 정보를 찾을 수 없습니다.')),
           );
         }
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('회사 코드 불러오기 오류: $e')),
+        SnackBar(content: Text('사용자 정보 불러오기 오류: $e')),
       );
     }
   }
@@ -57,7 +59,14 @@ class _AdminPageState extends State<AdminPage> with SingleTickerProviderStateMix
     if (companyCode == null) {
       return Scaffold(
         appBar: AppBar(title: Text('관리자 페이지')),
-        body: Center(child: CircularProgressIndicator()), // 회사 코드 로딩 중
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (!isAdmin) {
+      return Scaffold(
+        appBar: AppBar(title: Text('관리자 페이지')),
+        body: Center(child: Text('해당 권한이 없습니다.')),
       );
     }
 
@@ -135,90 +144,42 @@ class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
     }
   }
 
-  Future<void> _editRestaurant(String id, Map<String, dynamic> currentData) async {
-    _nameController.text = currentData['name'] ?? '';
-    _addressController.text = currentData['address'] ?? '';
-    _mainMenuController.text = currentData['mainmenu'] ?? '';
-    _mainPriceController.text = currentData['mainprice']?.toString() ?? '';
-
-    showDialog(
+  Future<void> _deleteRestaurant(String id) async {
+    bool confirmDelete = await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('식당 수정'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(labelText: '식당 이름'),
-            ),
-            TextField(
-              controller: _addressController,
-              decoration: InputDecoration(labelText: '주소'),
-            ),
-            TextField(
-              controller: _mainMenuController,
-              decoration: InputDecoration(labelText: '주요 메뉴'),
-            ),
-            TextField(
-              controller: _mainPriceController,
-              decoration: InputDecoration(labelText: '가격'),
-              keyboardType: TextInputType.number,
-            ),
-          ],
-        ),
+        title: Text('삭제 확인'),
+        content: Text('정말로 이 식당을 삭제하시겠습니까? 삭제하면 복구할 수 없습니다.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: Text('취소'),
           ),
           ElevatedButton(
-            onPressed: () async {
-              try {
-                await FirebaseFirestore.instance
-                    .collection('foods')
-                    .doc(widget.companyCode)
-                    .collection('foodlist')
-                    .doc(id)
-                    .update({
-                  'name': _nameController.text.trim(),
-                  'address': _addressController.text.trim(),
-                  'mainmenu': _mainMenuController.text.trim(),
-                  'mainprice': int.tryParse(_mainPriceController.text.trim()) ?? 0,
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('수정 완료!')),
-                );
-                Navigator.pop(context);
-                _clearFields();
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('오류 발생: $e')),
-                );
-              }
-            },
-            child: Text('수정'),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('삭제'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
           ),
         ],
       ),
     );
-  }
 
-  Future<void> _deleteRestaurant(String id) async {
-    try {
-      await FirebaseFirestore.instance
-          .collection('foods')
-          .doc(widget.companyCode)
-          .collection('foodlist')
-          .doc(id)
-          .delete();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('삭제 완료!')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('오류 발생: $e')),
-      );
+    if (confirmDelete == true) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('foods')
+            .doc(widget.companyCode)
+            .collection('foodlist')
+            .doc(id)
+            .delete();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('삭제 완료!')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('오류 발생: $e')),
+        );
+      }
     }
   }
 
@@ -243,21 +204,18 @@ class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
                   decoration: InputDecoration(labelText: '식당 이름'),
                 ),
               ),
-              SizedBox(width: 8),
               Expanded(
                 child: TextField(
                   controller: _addressController,
                   decoration: InputDecoration(labelText: '주소'),
                 ),
               ),
-              SizedBox(width: 8),
               Expanded(
                 child: TextField(
                   controller: _mainMenuController,
                   decoration: InputDecoration(labelText: '주요 메뉴'),
                 ),
               ),
-              SizedBox(width: 8),
               Expanded(
                 child: TextField(
                   controller: _mainPriceController,
@@ -297,16 +255,8 @@ class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
-                          icon: Icon(Icons.edit),
-                          onPressed: () {
-                            _editRestaurant(doc.id, data);
-                          },
-                        ),
-                        IconButton(
                           icon: Icon(Icons.delete),
-                          onPressed: () {
-                            _deleteRestaurant(doc.id);
-                          },
+                          onPressed: () => _deleteRestaurant(doc.id),
                         ),
                       ],
                     ),
@@ -321,7 +271,7 @@ class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
   }
 }
 
-// 회원 관리 (RUD)
+// 회원 관리 탭 (RUD)
 class _MemberManagementTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -334,30 +284,41 @@ class _MemberManagementTab extends StatelessWidget {
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return Center(child: Text('등록된 회원이 없습니다.'));
         }
-
         return ListView(
           children: snapshot.data!.docs.map((doc) {
             final data = doc.data() as Map<String, dynamic>;
             return ListTile(
               title: Text(data['name'] ?? '알 수 없음'),
-              subtitle: Text(
-                  '이메일: ${data['email'] ?? ''}\n회사 코드: ${data['company'] ?? ''}'),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // IconButton(
-                  //   icon: Icon(Icons.edit),
-                  //   onPressed: () {
-                  //     // 수정 로직 추가
-                  //   },
-                  // ),
-                  // IconButton(
-                  //   icon: Icon(Icons.delete),
-                  //   onPressed: () {
-                  //     FirebaseFirestore.instance.collection('member').doc(doc.id).delete();
-                  //   },
-                  // ),
-                ],
+              subtitle: Text('이메일: ${data['email'] ?? ''}'),
+              trailing: IconButton(
+                icon: Icon(Icons.delete),
+                onPressed: () async {
+                  bool confirmDelete = await showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: Text('회원 삭제'),
+                      content: Text('이 회원을 정말 삭제하시겠습니까?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: Text('취소'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: Text('삭제'),
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirmDelete == true) {
+                    await FirebaseFirestore.instance
+                        .collection('member')
+                        .doc(doc.id)
+                        .delete();
+                  }
+                },
               ),
             );
           }).toList(),
@@ -423,7 +384,6 @@ class _CompanyManagementTab extends StatelessWidget {
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                 return Center(child: Text('등록된 회사가 없습니다.'));
               }
-
               return ListView(
                 children: snapshot.data!.docs.map((doc) {
                   final data = doc.data() as Map<String, dynamic>;
@@ -432,8 +392,32 @@ class _CompanyManagementTab extends StatelessWidget {
                     subtitle: Text('코드: ${doc.id}'),
                     trailing: IconButton(
                       icon: Icon(Icons.delete),
-                      onPressed: () {
-                        FirebaseFirestore.instance.collection('company').doc(doc.id).delete();
+                      onPressed: () async {
+                        bool confirmDelete = await showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: Text('회사 삭제'),
+                            content: Text('이 회사를 정말 삭제하시겠습니까?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: Text('취소'),
+                              ),
+                              ElevatedButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: Text('삭제'),
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirmDelete == true) {
+                          await FirebaseFirestore.instance
+                              .collection('company')
+                              .doc(doc.id)
+                              .delete();
+                        }
                       },
                     ),
                   );
