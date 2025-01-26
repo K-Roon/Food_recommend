@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // 키보드 입력 제어에 필요
 import 'package:url_launcher/url_launcher.dart';
 
 class SignUpPage extends StatefulWidget {
@@ -18,8 +19,11 @@ class _SignUpPageState extends State<SignUpPage> {
   final _companyCodeController = TextEditingController();
   String? _errorMessage;
 
+  final _focusNodes = List.generate(5, (_) => FocusNode());
+
   Future<bool> _isValidCompanyCode(String code) async {
-    final snapshot = await FirebaseFirestore.instance.collection('company').doc(code).get();
+    final snapshot =
+    await FirebaseFirestore.instance.collection('company').doc(code).get();
     return snapshot.exists;
   }
 
@@ -38,7 +42,8 @@ class _SignUpPageState extends State<SignUpPage> {
         }
 
         // Firebase Authentication에 사용자 추가
-        final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        final userCredential =
+        await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
@@ -61,16 +66,36 @@ class _SignUpPageState extends State<SignUpPage> {
           SnackBar(content: Text('회원가입이 완료되었습니다.')),
         );
         Navigator.pop(context);
+      } on FirebaseAuthException catch (e) {
+        setState(() {
+          _errorMessage = _getErrorMessage(e.code);
+        });
       } catch (e) {
         setState(() {
-          _errorMessage = e.toString();
+          _errorMessage = '회원가입 중 오류가 발생했습니다. 다시 시도해주세요.';
         });
       }
     }
   }
 
+  String _getErrorMessage(String errorCode) {
+    switch (errorCode) {
+      case 'invalid-email':
+        return '유효하지 않은 이메일 형식입니다.';
+      case 'email-already-in-use':
+        return '이미 사용 중인 이메일입니다.';
+      case 'weak-password':
+        return '비밀번호가 너무 약합니다. 강력한 비밀번호를 사용하세요.';
+      case 'operation-not-allowed':
+        return '이메일/비밀번호 계정이 활성화되어 있지 않습니다.';
+      default:
+        return '회원가입 중 오류가 발생했습니다. 다시 시도해주세요.';
+    }
+  }
+
   String? _validateEmail(String? value) {
-    final emailRegex = RegExp(r'^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+    final emailRegex =
+    RegExp(r'^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
     if (value == null || value.isEmpty) {
       return '이메일을 입력하세요.';
     } else if (!emailRegex.hasMatch(value)) {
@@ -111,76 +136,106 @@ class _SignUpPageState extends State<SignUpPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('회원가입')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: InputDecoration(labelText: '이름'),
-                validator: (value) => value?.isEmpty ?? true ? '이름을 입력하세요.' : null,
-              ),
-              SizedBox(height: 16),
-              TextFormField(
-                controller: _emailController,
-                decoration: InputDecoration(labelText: '이메일'),
-                keyboardType: TextInputType.emailAddress,
-                validator: _validateEmail,
-              ),
-              SizedBox(height: 16),
-              TextFormField(
-                controller: _passwordController,
-                decoration: InputDecoration(labelText: '비밀번호'),
-                obscureText: true,
-                validator: _validatePassword,
-              ),
-              SizedBox(height: 16),
-              TextFormField(
-                controller: _confirmPasswordController,
-                decoration: InputDecoration(labelText: '비밀번호 확인'),
-                obscureText: true,
-                validator: _validateConfirmPassword,
-              ),
-              SizedBox(height: 16),
-              TextFormField(
-                controller: _companyCodeController,
-                decoration: InputDecoration(labelText: '회사 코드'),
-                validator: (value) => value?.isEmpty ?? true ? '회사 코드를 입력하세요.' : null,
-              ),
-              SizedBox(height: 16),
-              if (_errorMessage != null)
-                Text(
-                  _errorMessage!,
-                  style: TextStyle(color: Colors.red),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextFormField(
+                  controller: _nameController,
+                  decoration: InputDecoration(labelText: '이름'),
+                  validator: (value) =>
+                  value?.isEmpty ?? true ? '이름을 입력하세요.' : null,
+                  textInputAction: TextInputAction.next,
+                  focusNode: _focusNodes[0],
+                  onFieldSubmitted: (_) =>
+                      FocusScope.of(context).requestFocus(_focusNodes[1]),
                 ),
-              ElevatedButton(
-                onPressed: _signUp,
-                child: Text('회원가입'),
-              ),
-              SizedBox(height: 16),
-              Text.rich(
-                TextSpan(
-                  text: "회원가입을 하시게 되면, 약관 및 ",
-                  children: [
-                    TextSpan(
-                      text: "개인정보취급방침",
-                      style: TextStyle(
-                        decoration: TextDecoration.underline,
-                        color: Colors.blue,
+                SizedBox(height: 16),
+                TextFormField(
+                  controller: _emailController,
+                  decoration: InputDecoration(labelText: '이메일'),
+                  keyboardType: TextInputType.emailAddress,
+                  validator: _validateEmail,
+                  textInputAction: TextInputAction.next,
+                  focusNode: _focusNodes[1],
+                  onFieldSubmitted: (_) =>
+                      FocusScope.of(context).requestFocus(_focusNodes[2]),
+                ),
+                SizedBox(height: 16),
+                TextFormField(
+                  controller: _passwordController,
+                  decoration: InputDecoration(labelText: '비밀번호'),
+                  obscureText: true,
+                  validator: _validatePassword,
+                  textInputAction: TextInputAction.next,
+                  focusNode: _focusNodes[2],
+                  onFieldSubmitted: (_) =>
+                      FocusScope.of(context).requestFocus(_focusNodes[3]),
+                ),
+                SizedBox(height: 16),
+                TextFormField(
+                  controller: _confirmPasswordController,
+                  decoration: InputDecoration(labelText: '비밀번호 확인'),
+                  obscureText: true,
+                  validator: _validateConfirmPassword,
+                  textInputAction: TextInputAction.next,
+                  focusNode: _focusNodes[3],
+                  onFieldSubmitted: (_) =>
+                      FocusScope.of(context).requestFocus(_focusNodes[4]),
+                ),
+                SizedBox(height: 16),
+                TextFormField(
+                  controller: _companyCodeController,
+                  decoration: InputDecoration(labelText: '회사 코드'),
+                  validator: (value) =>
+                  value?.isEmpty ?? true ? '회사 코드를 입력하세요.' : null,
+                  textInputAction: TextInputAction.done,
+                  keyboardType: TextInputType.text,
+                  onChanged: (value) {
+                    _companyCodeController.value = TextEditingValue(
+                      text: value.toUpperCase().replaceAll(' ', '_'),
+                      selection: _companyCodeController.selection,
+                    );
+                  },
+                  focusNode: _focusNodes[4],
+                  onFieldSubmitted: (_) => _signUp(),
+                ),
+                SizedBox(height: 16),
+                if (_errorMessage != null)
+                  Text(
+                    _errorMessage!,
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ElevatedButton(
+                  onPressed: _signUp,
+                  child: Text('회원가입'),
+                ),
+                SizedBox(height: 16),
+                Text.rich(
+                  TextSpan(
+                    text: "회원가입을 하시게 되면, 약관 및 ",
+                    children: [
+                      TextSpan(
+                        text: "개인정보취급방침",
+                        style: TextStyle(
+                          decoration: TextDecoration.underline,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = _launchPrivacyPolicy,
                       ),
-                      recognizer: TapGestureRecognizer()
-                        ..onTap = _launchPrivacyPolicy,
-                    ),
-                    TextSpan(text: "에 동의하게 되는 것 입니다"),
-                  ],
+                      TextSpan(text: "에 동의하게 되는 것 입니다"),
+                    ],
+                  ),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
                 ),
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

@@ -26,9 +26,9 @@ class MyApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       theme: ThemeData(
-        primarySwatch: customRed, // 상징색 설정
+        primarySwatch: customRed,
         brightness: Brightness.light,
-        scaffoldBackgroundColor: Colors.white, // 배경색 설정
+        scaffoldBackgroundColor: Colors.white,
         colorScheme: ColorScheme.light(
           primary: customRed,
           surface: Colors.grey[200]!, // 흰색보다 어두운 색
@@ -68,25 +68,10 @@ class MyApp extends StatelessWidget {
         ),
       ),
       themeMode: ThemeMode.system,
-      home: AuthenticationWrapperWithMargin(),
+      home: AuthenticationWrapper(),
       routes: {
         '/login': (context) => LoginPage(),
       },
-    );
-  }
-}
-
-class AuthenticationWrapperWithMargin extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    // Retrieve the bottom padding value from MediaQuery
-    double bottomPadding = MediaQuery.of(context).viewPadding.bottom;
-
-    return Scaffold(
-      body: Container(
-        margin: EdgeInsets.only(bottom: bottomPadding),
-        child: AuthenticationWrapper(),
-      ),
     );
   }
 }

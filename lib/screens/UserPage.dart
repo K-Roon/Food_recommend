@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -226,7 +228,10 @@ class _UserPageState extends State<UserPage> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.all(8.0),
+                  padding: Platform.isIOS
+                      ? const EdgeInsets.only(
+                          left: 8.0, right: 8.0, top: 8.0, bottom: 16.0)
+                      : const EdgeInsets.all(8.0),
                   child: ElevatedButton(
                     onPressed: () => _recommendRandomFood(foodList),
                     child: Text('랜덤 추천'),
