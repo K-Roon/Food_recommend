@@ -1,6 +1,7 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:food_recommend/palette.dart';
 import 'package:food_recommend/screens/LoginPage.dart';
 import 'package:food_recommend/services/AuthenticationWrapper.dart';
 
@@ -16,9 +17,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: '랜덤 음식 추천 앱',
       locale: Locale('ko', 'KR'),
-      // 기본 언어를 한국어로 설정
       supportedLocales: [
-        Locale('ko', 'KR'), // 한국어
+        Locale('ko', 'KR'),
       ],
       localizationsDelegates: [
         GlobalMaterialLocalizations.delegate,
@@ -26,19 +26,67 @@ class MyApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       theme: ThemeData(
-        primarySwatch: Colors.blue,
-        brightness: Brightness.light, // 라이트 모드 설정
+        primarySwatch: customRed, // 상징색 설정
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: Colors.white, // 배경색 설정
+        colorScheme: ColorScheme.light(
+          primary: customRed,
+          surface: Colors.grey[200]!, // 흰색보다 어두운 색
+        ),
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+        ),
+        buttonTheme: ButtonThemeData(
+          buttonColor: customRed,
+          textTheme: ButtonTextTheme.primary,
+        ),
+        floatingActionButtonTheme: FloatingActionButtonThemeData(
+          backgroundColor: customRed,
+          foregroundColor: Colors.white,
+        ),
       ),
       darkTheme: ThemeData(
-        brightness: Brightness.dark, // 다크 모드 설정
-        primarySwatch: Colors.blue,
+        primarySwatch: customRed,
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: Colors.black54,
+        colorScheme: ColorScheme.dark(
+          primary: customRed,
+          surface: Colors.grey[800]!, // 어두운 테마용 surface 색상
+        ),
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+        ),
+        buttonTheme: ButtonThemeData(
+          buttonColor: customRed,
+          textTheme: ButtonTextTheme.primary,
+        ),
+        floatingActionButtonTheme: FloatingActionButtonThemeData(
+          backgroundColor: customRed,
+          foregroundColor: Colors.white,
+        ),
       ),
       themeMode: ThemeMode.system,
-      // 시스템 설정에 따라 자동 변경
-      home: AuthenticationWrapper(),
+      home: AuthenticationWrapperWithMargin(),
       routes: {
         '/login': (context) => LoginPage(),
       },
+    );
+  }
+}
+
+class AuthenticationWrapperWithMargin extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    // Retrieve the bottom padding value from MediaQuery
+    double bottomPadding = MediaQuery.of(context).viewPadding.bottom;
+
+    return Scaffold(
+      body: Container(
+        margin: EdgeInsets.only(bottom: bottomPadding),
+        child: AuthenticationWrapper(),
+      ),
     );
   }
 }

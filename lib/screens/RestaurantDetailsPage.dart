@@ -16,14 +16,14 @@ class RestaurantDetailsPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('식당 이름: ${food['name'] ?? '알 수 없음'}',
+            Text('${food['mainmenu'] ?? '알 수 없음'}',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             SizedBox(height: 10),
-            Text('주소: ${food['address'] ?? '주소 없음'}'),
+            Text('가격: ${food['mainprice'] ?? '가격정보 없음'}원'),
             SizedBox(height: 10),
-            Text('주요 메뉴: ${food['mainmenu'] ?? '메뉴 정보 없음'}'),
+            Text('식당 이름: ${food['name'] ?? '알 수 없음'}'),
             SizedBox(height: 10),
-            Text('가격: ${food['mainprice'] ?? '가격 정보 없음'}원'),
+            Text('주소: ${food['address'] ?? '주소 정보 없음'}'),
           ],
         ),
       ),

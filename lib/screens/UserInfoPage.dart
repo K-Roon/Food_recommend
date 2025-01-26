@@ -84,7 +84,6 @@ class UserInfoPage extends StatelessWidget {
               await _deleteAccount(context, memberId);
             },
             child: Text('여기를 길게 눌러 회원 탈퇴'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
           ),
         ],
       ),
