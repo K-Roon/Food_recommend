@@ -15,7 +15,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: '랜덤 음식 추천 앱',
-      locale: Locale('ko', 'KR'), // 기본 언어를 한국어로 설정
+      locale: Locale('ko', 'KR'),
+      // 기본 언어를 한국어로 설정
       supportedLocales: [
         Locale('ko', 'KR'), // 한국어
       ],
@@ -32,7 +33,8 @@ class MyApp extends StatelessWidget {
         brightness: Brightness.dark, // 다크 모드 설정
         primarySwatch: Colors.blue,
       ),
-      themeMode: ThemeMode.system, // 시스템 설정에 따라 자동 변경
+      themeMode: ThemeMode.system,
+      // 시스템 설정에 따라 자동 변경
       home: AuthenticationWrapper(),
       routes: {
         '/login': (context) => LoginPage(),

@@ -183,8 +183,7 @@ class UserInfoPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
+    return Scaffold(
         appBar: AppBar(
           title: Text('내 정보'),
         ),
@@ -249,12 +248,12 @@ class UserInfoPage extends StatelessWidget {
                     ),
                     style: TextStyle(fontSize: 14, color: Colors.grey),
                   ),
+                  SizedBox(height: 16),
                 ],
               ),
             );
           },
         ),
-      ),
-    );
+      );
   }
 }
