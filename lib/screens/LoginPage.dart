@@ -29,7 +29,7 @@ class _LoginPageState extends State<LoginPage> {
         });
       } catch (e) {
         setState(() {
-          _errorMessage = '로그인 중 오류가 발생했습니다. 다시 시도해주세요.';
+          _errorMessage = '로그인 중 오류가 발생했습니다. 다시 시도해주세요. 이 현상이 지속될 경우 앱을 완전히 닫고 다시 열어주세요.';
         });
       }
     }

@@ -144,6 +144,83 @@ class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
     }
   }
 
+  Future<void> _showEditDialog(String id, Map<String, dynamic> currentData) async {
+    final TextEditingController editNameController =
+    TextEditingController(text: currentData['name']);
+    final TextEditingController editAddressController =
+    TextEditingController(text: currentData['address']);
+    final TextEditingController editMenuController =
+    TextEditingController(text: currentData['mainmenu']);
+    final TextEditingController editPriceController =
+    TextEditingController(text: currentData['mainprice'].toString());
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('식당 수정'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: editNameController,
+              decoration: InputDecoration(labelText: '식당 이름'),
+            ),
+            TextField(
+              controller: editAddressController,
+              decoration: InputDecoration(labelText: '주소'),
+            ),
+            TextField(
+              controller: editMenuController,
+              decoration: InputDecoration(labelText: '주요 메뉴'),
+            ),
+            TextField(
+              controller: editPriceController,
+              decoration: InputDecoration(labelText: '가격'),
+              keyboardType: TextInputType.number,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final updatedData = {
+                'name': editNameController.text.trim(),
+                'address': editAddressController.text.trim(),
+                'mainmenu': editMenuController.text.trim(),
+                'mainprice': int.tryParse(editPriceController.text.trim()) ?? 0,
+              };
+
+              try {
+                // Firestore 업데이트 로직
+                await FirebaseFirestore.instance
+                    .collection('foods')
+                    .doc(widget.companyCode)
+                    .collection('foodlist')
+                    .doc(id)
+                    .update(updatedData);
+
+                Navigator.pop(context); // 다이얼로그 닫기
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('수정 완료!')),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('수정 중 오류 발생: $e')),
+                );
+              }
+            },
+            child: Text('저장'),
+          ),
+        ],
+      ),
+    );
+  }
+
+
   Future<void> _deleteRestaurant(String id) async {
     bool confirmDelete = await showDialog(
       context: context,
@@ -255,10 +332,15 @@ class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
                   return ListTile(
                     title: Text(data['name'] ?? '알 수 없음'),
                     subtitle: Text(
-                        '주소: ${data['address'] ?? ''}\n메뉴: ${data['mainmenu'] ?? ''}\n가격: ${data['mainprice'] ?? 0}원'),
+                      '주소: ${data['address'] ?? ''}\n메뉴: ${data['mainmenu'] ?? ''}\n가격: ${data['mainprice'] ?? 0}원',
+                    ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        IconButton(
+                          icon: Icon(Icons.edit),
+                          onPressed: () => _showEditDialog(doc.id, data),
+                        ),
                         IconButton(
                           icon: Icon(Icons.delete),
                           onPressed: () => _deleteRestaurant(doc.id),
@@ -266,6 +348,7 @@ class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
                       ],
                     ),
                   );
+
                 }).toList(),
               );
             },
