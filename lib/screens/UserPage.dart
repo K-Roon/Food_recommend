@@ -105,88 +105,90 @@ class _UserPageState extends State<UserPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('음식 리스트'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: _refreshPage, // 새로고침 버튼
-          ),
-          PopupMenuButton(
-            onSelected: (value) {
-              if (value == 'admin' && isAdmin) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => AdminPage()),
-                );
-              } else if (value == 'userinfo') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => UserInfoPage()),
-                );
-              }
-            },
-            itemBuilder: (context) => [
-              if (isAdmin)
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('음식 리스트'),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.refresh),
+              onPressed: _refreshPage, // 새로고침 버튼
+            ),
+            PopupMenuButton(
+              onSelected: (value) {
+                if (value == 'admin' && isAdmin) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => AdminPage()),
+                  );
+                } else if (value == 'userinfo') {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => UserInfoPage()),
+                  );
+                }
+              },
+              itemBuilder: (context) => [
+                if (isAdmin)
+                  PopupMenuItem(
+                    value: 'admin',
+                    child: Text('관리자 페이지'),
+                  ),
                 PopupMenuItem(
-                  value: 'admin',
-                  child: Text('관리자 페이지'),
+                  value: 'userinfo',
+                  child: Text('사용자 정보 페이지'),
                 ),
-              PopupMenuItem(
-                value: 'userinfo',
-                child: Text('사용자 정보 페이지'),
-              ),
-            ],
-          ),
-        ],
-      ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _fetchFoodList(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('오류 발생: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('음식 데이터가 없습니다.'));
-          }
+              ],
+            ),
+          ],
+        ),
+        body: FutureBuilder<List<Map<String, dynamic>>>(
+          future: _fetchFoodList(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text('오류 발생: ${snapshot.error}'));
+            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return Center(child: Text('음식 데이터가 없습니다.'));
+            }
 
-          final foodList = snapshot.data!;
-          return Column(
-            children: [
-              Expanded(
-                child: ListView.builder(
-                  itemCount: foodList.length,
-                  itemBuilder: (context, index) {
-                    final food = foodList[index];
-                    return ListTile(
-                      title: Text(food['mainmenu'] ?? '알 수 없음'),
-                      subtitle: Text(food['name'] ?? '주소 없음'),
-                      trailing: Text('${food['mainprice'] ?? 0}원'),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                RestaurantDetailsPage(food: food),
-                          ),
-                        );
-                      },
-                    );
-                  },
+            final foodList = snapshot.data!;
+            return Column(
+              children: [
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: foodList.length,
+                    itemBuilder: (context, index) {
+                      final food = foodList[index];
+                      return ListTile(
+                        title: Text(food['mainmenu'] ?? '알 수 없음'),
+                        subtitle: Text(food['name'] ?? '주소 없음'),
+                        trailing: Text('${food['mainprice'] ?? 0}원'),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  RestaurantDetailsPage(food: food),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: ElevatedButton(
-                  onPressed: () => _recommendRandomFood(foodList),
-                  child: Text('랜덤 추천'),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: ElevatedButton(
+                    onPressed: () => _recommendRandomFood(foodList),
+                    child: Text('랜덤 추천'),
+                  ),
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }

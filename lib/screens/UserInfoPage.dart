@@ -53,18 +53,13 @@ class UserInfoPage extends StatelessWidget {
       final user = _auth.currentUser;
 
       if (user != null) {
-        // Firestore에서 멤버 데이터 삭제
         await FirebaseFirestore.instance.collection('member').doc(memberId).delete();
-
-        // Firebase Authentication 계정 삭제
         await user.delete();
-
-        // 로그아웃 처리 후 로그인 화면으로 이동
         await _auth.signOut();
         Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
       }
     } catch (e) {
-      if (Navigator.canPop(context)) Navigator.pop(context); // 다이얼로그 닫기
+      if (Navigator.canPop(context)) Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('회원탈퇴 중 오류가 발생했습니다: $e')),
       );
@@ -76,7 +71,7 @@ class UserInfoPage extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('회원 탈퇴'),
-        content: Text('회원 탈퇴 시 회원의 모든 데이터가 삭제되며 복구할 수 없습니다.\n계속하시겠습니까?'),
+        content: Text('회원 탈퇴 시 모든 데이터가 삭제되며 복구할 수 없습니다. 계속하시겠습니까?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -85,7 +80,7 @@ class UserInfoPage extends StatelessWidget {
           ElevatedButton(
             onPressed: () => Navigator.pop(context),
             onLongPress: () async {
-              Navigator.pop(context); // 다이얼로그 닫기
+              Navigator.pop(context);
               await _deleteAccount(context, memberId);
             },
             child: Text('여기를 길게 눌러 회원 탈퇴'),
@@ -97,12 +92,9 @@ class UserInfoPage extends StatelessWidget {
   }
 
   Future<void> _changePassword(BuildContext context) async {
-    final TextEditingController currentPasswordController =
-    TextEditingController();
-    final TextEditingController newPasswordController =
-    TextEditingController();
-    final TextEditingController confirmNewPasswordController =
-    TextEditingController();
+    final TextEditingController currentPasswordController = TextEditingController();
+    final TextEditingController newPasswordController = TextEditingController();
+    final TextEditingController confirmNewPasswordController = TextEditingController();
 
     showDialog(
       context: context,
@@ -137,12 +129,9 @@ class UserInfoPage extends StatelessWidget {
             onPressed: () async {
               final currentPassword = currentPasswordController.text.trim();
               final newPassword = newPasswordController.text.trim();
-              final confirmNewPassword =
-              confirmNewPasswordController.text.trim();
+              final confirmNewPassword = confirmNewPasswordController.text.trim();
 
-              if (currentPassword.isEmpty ||
-                  newPassword.isEmpty ||
-                  confirmNewPassword.isEmpty) {
+              if (currentPassword.isEmpty || newPassword.isEmpty || confirmNewPassword.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('모든 필드를 입력하세요.')),
                 );
@@ -173,7 +162,6 @@ class UserInfoPage extends StatelessWidget {
                 );
 
                 await user?.reauthenticateWithCredential(credential);
-
                 await user?.updatePassword(newPassword);
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -195,75 +183,77 @@ class UserInfoPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('내 정보'),
-      ),
-      body: FutureBuilder<Map<String, dynamic>>(
-        future: _fetchUserInfo(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('오류 발생: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('사용자 정보를 불러올 수 없습니다.'));
-          }
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('내 정보'),
+        ),
+        body: FutureBuilder<Map<String, dynamic>>(
+          future: _fetchUserInfo(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text('오류 발생: ${snapshot.error}'));
+            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return Center(child: Text('사용자 정보를 불러올 수 없습니다.'));
+            }
 
-          final userInfo = snapshot.data!;
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '이름: ${userInfo['name'] ?? '알 수 없음'}',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  '이메일: ${userInfo['email'] ?? '알 수 없음'}',
-                  style: TextStyle(fontSize: 16),
-                ),
-                SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {
-                    _changePassword(context);
-                  },
-                  child: Text('비밀번호 변경'),
-                ),
-                Spacer(),
-                ElevatedButton(
-                  onPressed: () {
-                    _logout(context);
-                  },
-                  child: Text('로그아웃'),
-                ),
-                SizedBox(height: 16),
-                Text.rich(
-                  TextSpan(
-                    text: "회원탈퇴를 하시려면 ",
-                    children: [
-                      TextSpan(
-                        text: "여기",
-                        style: TextStyle(
-                          decoration: TextDecoration.underline,
-                          color: Colors.blue,
-                        ),
-                        recognizer: TapGestureRecognizer()
-                          ..onTap = () {
-                            _confirmAccountDeletion(context, userInfo['id']);
-                          },
-                      ),
-                      TextSpan(text: "를 눌러주세요."),
-                    ],
+            final userInfo = snapshot.data!;
+            return Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '이름: ${userInfo['name'] ?? '알 수 없음'}',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-              ],
-            ),
-          );
-        },
+                  SizedBox(height: 8),
+                  Text(
+                    '이메일: ${userInfo['email'] ?? '알 수 없음'}',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      _changePassword(context);
+                    },
+                    child: Text('비밀번호 변경'),
+                  ),
+                  Spacer(),
+                  ElevatedButton(
+                    onPressed: () {
+                      _logout(context);
+                    },
+                    child: Text('로그아웃'),
+                  ),
+                  SizedBox(height: 16),
+                  Text.rich(
+                    TextSpan(
+                      text: "회원탈퇴를 하시려면 ",
+                      children: [
+                        TextSpan(
+                          text: "여기",
+                          style: TextStyle(
+                            decoration: TextDecoration.underline,
+                            color: Colors.blue,
+                          ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () {
+                              _confirmAccountDeletion(context, userInfo['id']);
+                            },
+                        ),
+                        TextSpan(text: "를 눌러주세요."),
+                      ],
+                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }

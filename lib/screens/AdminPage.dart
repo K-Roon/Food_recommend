@@ -196,36 +196,41 @@ class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
       children: [
         Padding(
           padding: const EdgeInsets.all(8.0),
-          child: Row(
+          child: Column(
             children: [
-              Expanded(
-                child: TextField(
-                  controller: _nameController,
-                  decoration: InputDecoration(labelText: '식당 이름'),
-                ),
+              TextField(
+                controller: _nameController,
+                decoration: InputDecoration(labelText: '식당 이름'),
               ),
-              Expanded(
-                child: TextField(
-                  controller: _addressController,
-                  decoration: InputDecoration(labelText: '주소'),
-                ),
+              SizedBox(height: 8),
+              TextField(
+                controller: _addressController,
+                decoration: InputDecoration(labelText: '주소'),
               ),
-              Expanded(
-                child: TextField(
-                  controller: _mainMenuController,
-                  decoration: InputDecoration(labelText: '주요 메뉴'),
-                ),
+              SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _mainMenuController,
+                      decoration: InputDecoration(labelText: '주요 메뉴'),
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: _mainPriceController,
+                      decoration: InputDecoration(labelText: '가격'),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
               ),
-              Expanded(
-                child: TextField(
-                  controller: _mainPriceController,
-                  decoration: InputDecoration(labelText: '가격'),
-                  keyboardType: TextInputType.number,
-                ),
-              ),
-              IconButton(
-                icon: Icon(Icons.add),
+              SizedBox(height: 8),
+              ElevatedButton.icon(
                 onPressed: _addRestaurant,
+                icon: Icon(Icons.add),
+                label: Text('추가'),
               ),
             ],
           ),
