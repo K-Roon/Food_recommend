@@ -4,10 +4,12 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:food_recommend/palette.dart';
 import 'package:food_recommend/screens/LoginPage.dart';
 import 'package:food_recommend/services/AuthenticationWrapper.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  await MobileAds.instance.initialize();
   runApp(MyApp());
 }
 
