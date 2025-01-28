@@ -12,16 +12,11 @@
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
 		4E972101A66F3928CE94477E /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3AB7D7DA6B5FBB08B5394430 /* Pods_RunnerTests.framework */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
-		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
-		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
 		9FC66416FCC5E97EC06A1C7F /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 733B4670ACE73DECBF545614 /* Pods_Runner.framework */; };
 		F8B2D4EF2D3BF43600CE6FBA /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F8B2D4EE2D3BF43600CE6FBA /* GoogleService-Info.plist */; };
 		F8B2D4FC2D3BF45A00CE6FBA /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8B2D4F02D3BF45A00CE6FBA /* AppDelegate.swift */; };
-		F8B2D4FD2D3BF45A00CE6FBA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F8B2D4F12D3BF45A00CE6FBA /* Assets.xcassets */; };
 		F8B2D4FE2D3BF45A00CE6FBA /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = F8B2D4F32D3BF45A00CE6FBA /* GeneratedPluginRegistrant.m */; };
-		F8B2D4FF2D3BF45A00CE6FBA /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F8B2D4F42D3BF45A00CE6FBA /* GoogleService-Info.plist */; };
-		F8B2D5002D3BF45A00CE6FBA /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F8B2D4F52D3BF45A00CE6FBA /* Info.plist */; };
 		F8B2D5012D3BF45A00CE6FBA /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F8B2D4F72D3BF45A00CE6FBA /* LaunchScreen.storyboard */; };
 		F8B2D5022D3BF45A00CE6FBA /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F8B2D4F92D3BF45A00CE6FBA /* Main.storyboard */; };
 /* End PBXBuildFile section */
@@ -234,6 +229,7 @@
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				700BCBCD0A4F367C693427B0 /* [CP] Embed Pods Frameworks */,
+				F9785AFB3F49EC8ECE5D034B /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -251,7 +247,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1540;
+				LastUpgradeCheck = 1510;
 				ORGANIZATIONNAME = "";
 				TargetAttributes = {
 					331C8080294A63A400263BE5 = {
@@ -297,14 +293,9 @@
 			files = (
 				F8B2D5012D3BF45A00CE6FBA /* LaunchScreen.storyboard in Resources */,
 				F8B2D5022D3BF45A00CE6FBA /* Main.storyboard in Resources */,
-				F8B2D5002D3BF45A00CE6FBA /* Info.plist in Resources */,
-				97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */,
 				3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */,
 				F8B2D4EF2D3BF43600CE6FBA /* GoogleService-Info.plist in Resources */,
 				97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */,
-				F8B2D4FD2D3BF45A00CE6FBA /* Assets.xcassets in Resources */,
-				97C146FC1CF9000F007C117D /* Main.storyboard in Resources */,
-				F8B2D4FF2D3BF45A00CE6FBA /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -401,6 +392,23 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		F9785AFB3F49EC8ECE5D034B /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */

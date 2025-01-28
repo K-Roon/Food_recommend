@@ -28,6 +28,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>이미지를 찍기 위해 카메라 권한이 필요합니다.</string>
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-2748600890197597~7746954073</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
