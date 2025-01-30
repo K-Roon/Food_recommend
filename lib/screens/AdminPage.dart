@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 class AdminPage extends StatefulWidget {
   @override
@@ -22,7 +25,6 @@ class _AdminPageState extends State<AdminPage> with SingleTickerProviderStateMix
   Future<void> _fetchUserDetails() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
-
       if (user != null) {
         final snapshot = await FirebaseFirestore.instance
             .collection('member')
@@ -35,16 +37,10 @@ class _AdminPageState extends State<AdminPage> with SingleTickerProviderStateMix
             companyCode = data['company'];
             isAdmin = data['isAdmin'] ?? false;
           });
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('로그인된 사용자의 정보를 찾을 수 없습니다.')),
-          );
         }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('사용자 정보 불러오기 오류: $e')),
-      );
+      print('사용자 정보를 불러오는 중 오류 발생: $e');
     }
   }
 
@@ -94,15 +90,14 @@ class _AdminPageState extends State<AdminPage> with SingleTickerProviderStateMix
   }
 }
 
-// 음식 관리 탭 (CRUD)
+//음식 관리 기능(CRUD)
 class _RestaurantManagementTab extends StatefulWidget {
   final String companyCode;
 
   const _RestaurantManagementTab({required this.companyCode});
 
   @override
-  _RestaurantManagementTabState createState() =>
-      _RestaurantManagementTabState();
+  _RestaurantManagementTabState createState() => _RestaurantManagementTabState();
 }
 
 class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
@@ -110,19 +105,47 @@ class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
   final _addressController = TextEditingController();
   final _mainMenuController = TextEditingController();
   final _mainPriceController = TextEditingController();
+  final _imageSourceController = TextEditingController();
+  File? _imageFile;
+  final picker = ImagePicker();
+
+  Future<void> _pickImage() async {
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+      });
+    }
+  }
+
+  Future<String?> _uploadImage(File image) async {
+    try {
+      final storageRef = FirebaseStorage.instance.ref().child(
+          'food_images/${DateTime.now().millisecondsSinceEpoch}.jpg');
+      await storageRef.putFile(image);
+      return await storageRef.getDownloadURL();
+    } catch (e) {
+      print("이미지 업로드 오류: $e");
+      return null;
+    }
+  }
 
   Future<void> _addRestaurant() async {
     if (_nameController.text.isEmpty ||
         _addressController.text.isEmpty ||
         _mainMenuController.text.isEmpty ||
-        _mainPriceController.text.isEmpty) {
+        _mainPriceController.text.isEmpty ||
+        _imageFile == null ||
+        _imageSourceController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('모든 필드를 입력하세요.')),
       );
       return;
     }
 
-    try {
+    String? imageUrl = await _uploadImage(_imageFile!);
+
+    if (imageUrl != null) {
       await FirebaseFirestore.instance
           .collection('foods')
           .doc(widget.companyCode)
@@ -132,70 +155,75 @@ class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
         'address': _addressController.text.trim(),
         'mainmenu': _mainMenuController.text.trim(),
         'mainprice': int.tryParse(_mainPriceController.text.trim()) ?? 0,
+        'imageURL': imageUrl,
+        'imageSource': _imageSourceController.text.trim(),
       });
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('음식 추가 완료!')),
       );
       _clearFields();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('오류 발생: $e')),
-      );
     }
   }
 
   Future<void> _showEditDialog(String id, Map<String, dynamic> currentData) async {
-    final TextEditingController editNameController =
-    TextEditingController(text: currentData['name']);
-    final TextEditingController editAddressController =
-    TextEditingController(text: currentData['address']);
-    final TextEditingController editMenuController =
-    TextEditingController(text: currentData['mainmenu']);
-    final TextEditingController editPriceController =
-    TextEditingController(text: currentData['mainprice'].toString());
+    final TextEditingController editNameController = TextEditingController(text: currentData['name']);
+    final TextEditingController editAddressController = TextEditingController(text: currentData['address']);
+    final TextEditingController editMenuController = TextEditingController(text: currentData['mainmenu']);
+    final TextEditingController editPriceController = TextEditingController(text: currentData['mainprice'].toString());
+    final TextEditingController editSourceController = TextEditingController(text: currentData['imageSource']);
+
+    File? newImage;
+    String? newImageUrl = currentData['imageURL'];
 
     await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('식당 수정'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: editNameController,
-              decoration: InputDecoration(labelText: '식당 이름'),
-            ),
-            TextField(
-              controller: editAddressController,
-              decoration: InputDecoration(labelText: '주소'),
-            ),
-            TextField(
-              controller: editMenuController,
-              decoration: InputDecoration(labelText: '주요 메뉴'),
-            ),
-            TextField(
-              controller: editPriceController,
-              decoration: InputDecoration(labelText: '가격'),
-              keyboardType: TextInputType.number,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('취소'),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text('식당 수정'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: editNameController, decoration: InputDecoration(labelText: '식당 이름')),
+              TextField(controller: editAddressController, decoration: InputDecoration(labelText: '주소')),
+              TextField(controller: editMenuController, decoration: InputDecoration(labelText: '주요 메뉴')),
+              TextField(controller: editPriceController, decoration: InputDecoration(labelText: '가격'), keyboardType: TextInputType.number),
+              TextField(controller: editSourceController, decoration: InputDecoration(labelText: '이미지 출처')),
+              SizedBox(height: 8),
+              newImage != null
+                  ? Image.file(newImage!, height: 100)
+                  : (newImageUrl != null ? Image.network(newImageUrl!, height: 100) : Text("이미지가 없습니다.")),
+              TextButton.icon(
+                icon: Icon(Icons.image),
+                label: Text("이미지 변경"),
+                onPressed: () async {
+                  final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+                  if (pickedFile != null) {
+                    setState(() {
+                      newImage = File(pickedFile.path);
+                    });
+                  }
+                },
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () async {
-              final updatedData = {
-                'name': editNameController.text.trim(),
-                'address': editAddressController.text.trim(),
-                'mainmenu': editMenuController.text.trim(),
-                'mainprice': int.tryParse(editPriceController.text.trim()) ?? 0,
-              };
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: Text('취소')),
+            ElevatedButton(
+              onPressed: () async {
+                if (newImage != null) {
+                  newImageUrl = await _uploadImage(newImage!);
+                }
 
-              try {
-                // Firestore 업데이트 로직
+                final updatedData = {
+                  'name': editNameController.text.trim(),
+                  'address': editAddressController.text.trim(),
+                  'mainmenu': editMenuController.text.trim(),
+                  'mainprice': int.tryParse(editPriceController.text.trim()) ?? 0,
+                  'imageURL': newImageUrl ?? currentData['imageURL'],  // ✅ 새 이미지 없으면 기존 유지
+                  'imageSource': editSourceController.text.trim(),
+                };
+
                 await FirebaseFirestore.instance
                     .collection('foods')
                     .doc(widget.companyCode)
@@ -203,61 +231,29 @@ class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
                     .doc(id)
                     .update(updatedData);
 
-                Navigator.pop(context); // 다이얼로그 닫기
+                Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('수정 완료!')),
                 );
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('수정 중 오류 발생: $e')),
-                );
-              }
-            },
-            child: Text('저장'),
-          ),
-        ],
+              },
+              child: Text('저장'),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-
   Future<void> _deleteRestaurant(String id) async {
-    bool confirmDelete = await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('삭제 확인'),
-        content: Text('정말로 이 식당을 삭제하시겠습니까? 삭제하면 복구할 수 없습니다.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('취소'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text('삭제'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-          ),
-        ],
-      ),
+    await FirebaseFirestore.instance
+        .collection('foods')
+        .doc(widget.companyCode)
+        .collection('foodlist')
+        .doc(id)
+        .delete();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('삭제 완료!')),
     );
-
-    if (confirmDelete == true) {
-      try {
-        await FirebaseFirestore.instance
-            .collection('foods')
-            .doc(widget.companyCode)
-            .collection('foodlist')
-            .doc(id)
-            .delete();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('삭제 완료!')),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('오류 발생: $e')),
-        );
-      }
-    }
   }
 
   void _clearFields() {
@@ -265,52 +261,31 @@ class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
     _addressController.clear();
     _mainMenuController.clear();
     _mainPriceController.clear();
+    _imageSourceController.clear();
+    setState(() {
+      _imageFile = null;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column(
-            children: [
-              TextField(
-                controller: _nameController,
-                decoration: InputDecoration(labelText: '식당 이름'),
-              ),
-              SizedBox(height: 8),
-              TextField(
-                controller: _addressController,
-                decoration: InputDecoration(labelText: '주소'),
-              ),
-              SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _mainMenuController,
-                      decoration: InputDecoration(labelText: '주요 메뉴'),
-                    ),
-                  ),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      controller: _mainPriceController,
-                      decoration: InputDecoration(labelText: '가격'),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 8),
-              ElevatedButton.icon(
-                onPressed: _addRestaurant,
-                icon: Icon(Icons.add),
-                label: Text('추가'),
-              ),
-            ],
-          ),
+        Column(
+          children: [
+            TextField(controller: _nameController, decoration: InputDecoration(labelText: '식당 이름')),
+            TextField(controller: _addressController, decoration: InputDecoration(labelText: '주소')),
+            TextField(controller: _mainMenuController, decoration: InputDecoration(labelText: '주요 메뉴')),
+            TextField(controller: _mainPriceController, decoration: InputDecoration(labelText: '가격'), keyboardType: TextInputType.number),
+            TextField(controller: _imageSourceController, decoration: InputDecoration(labelText: '이미지 출처')),
+            SizedBox(height: 8),
+            _imageFile != null ? Image.file(_imageFile!, height: 100) : Text("이미지를 선택하세요"),
+            Row(children: [
+              Expanded(child: ElevatedButton.icon(icon: Icon(Icons.image), label: Text("이미지 선택"), onPressed: _pickImage)),
+              Expanded(child: ElevatedButton.icon(onPressed: _addRestaurant, icon: Icon(Icons.add), label: Text('추가')),),
+            ],),
+
+          ],
         ),
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
@@ -320,9 +295,6 @@ class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
                 .collection('foodlist')
                 .snapshots(),
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return Center(child: CircularProgressIndicator());
-              }
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                 return Center(child: Text('등록된 식당이 없습니다.'));
               }
@@ -330,25 +302,19 @@ class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
                 children: snapshot.data!.docs.map((doc) {
                   final data = doc.data() as Map<String, dynamic>;
                   return ListTile(
+                    leading: data['imageURL'] != null
+                        ? Image.network(data['imageURL'], width: 50, height: 50, fit: BoxFit.cover)
+                        : Icon(Icons.image),
                     title: Text(data['name'] ?? '알 수 없음'),
-                    subtitle: Text(
-                      '주소: ${data['address'] ?? ''}\n메뉴: ${data['mainmenu'] ?? ''}\n가격: ${data['mainprice'] ?? 0}원',
-                    ),
+                    subtitle: Text('${data['address']} | ${data['mainmenu']} | ${data['mainprice']}원'),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        IconButton(
-                          icon: Icon(Icons.edit),
-                          onPressed: () => _showEditDialog(doc.id, data),
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.delete),
-                          onPressed: () => _deleteRestaurant(doc.id),
-                        ),
+                        IconButton(icon: Icon(Icons.edit), onPressed: () => _showEditDialog(doc.id, data)),
+                        IconButton(icon: Icon(Icons.delete), onPressed: () => _deleteRestaurant(doc.id)),
                       ],
                     ),
                   );
-
                 }).toList(),
               );
             },
@@ -394,7 +360,8 @@ class _MemberManagementTab extends StatelessWidget {
                         ElevatedButton(
                           onPressed: () => Navigator.pop(context, true),
                           child: Text('삭제'),
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red),
                         ),
                       ],
                     ),
@@ -422,7 +389,8 @@ class _CompanyManagementTab extends StatelessWidget {
   final TextEditingController companyNameController = TextEditingController();
 
   Future<void> _addCompany() async {
-    if (companyCodeController.text.isEmpty || companyNameController.text.isEmpty) {
+    if (companyCodeController.text.isEmpty ||
+        companyNameController.text.isEmpty) {
       return;
     }
     await FirebaseFirestore.instance
@@ -464,7 +432,8 @@ class _CompanyManagementTab extends StatelessWidget {
         ),
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('company').snapshots(),
+            stream:
+                FirebaseFirestore.instance.collection('company').snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return Center(child: CircularProgressIndicator());
@@ -494,7 +463,8 @@ class _CompanyManagementTab extends StatelessWidget {
                               ElevatedButton(
                                 onPressed: () => Navigator.pop(context, true),
                                 child: Text('삭제'),
-                                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red),
                               ),
                             ],
                           ),
