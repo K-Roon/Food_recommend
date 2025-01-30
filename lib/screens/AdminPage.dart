@@ -101,6 +101,8 @@ class _RestaurantManagementTab extends StatefulWidget {
 }
 
 class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
+  bool isUploading = false;
+
   final _nameController = TextEditingController();
   final _addressController = TextEditingController();
   final _mainMenuController = TextEditingController();
@@ -143,7 +145,15 @@ class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
       return;
     }
 
+    setState(() {
+      isUploading = true;
+    });
+
     String? imageUrl = await _uploadImage(_imageFile!);
+
+    setState(() {
+      isUploading = false;
+    });
 
     if (imageUrl != null) {
       await FirebaseFirestore.instance
@@ -175,42 +185,69 @@ class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
 
     File? newImage;
     String? newImageUrl = currentData['imageURL'];
+    bool isUploading = false;
 
     await showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           title: Text('식당 수정'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: editNameController, decoration: InputDecoration(labelText: '식당 이름')),
-              TextField(controller: editAddressController, decoration: InputDecoration(labelText: '주소')),
-              TextField(controller: editMenuController, decoration: InputDecoration(labelText: '주요 메뉴')),
-              TextField(controller: editPriceController, decoration: InputDecoration(labelText: '가격'), keyboardType: TextInputType.number),
-              TextField(controller: editSourceController, decoration: InputDecoration(labelText: '이미지 출처')),
-              SizedBox(height: 8),
-              newImage != null
-                  ? Image.file(newImage!, height: 100)
-                  : (newImageUrl != null ? Image.network(newImageUrl!, height: 100) : Text("이미지가 없습니다.")),
-              TextButton.icon(
-                icon: Icon(Icons.image),
-                label: Text("이미지 변경"),
-                onPressed: () async {
-                  final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-                  if (pickedFile != null) {
-                    setState(() {
-                      newImage = File(pickedFile.path);
-                    });
-                  }
-                },
-              ),
-            ],
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(controller: editNameController, decoration: InputDecoration(labelText: '식당 이름')),
+                TextField(controller: editAddressController, decoration: InputDecoration(labelText: '주소')),
+                TextField(controller: editMenuController, decoration: InputDecoration(labelText: '주요 메뉴')),
+                TextField(controller: editPriceController, decoration: InputDecoration(labelText: '가격'), keyboardType: TextInputType.number),
+                TextField(controller: editSourceController, decoration: InputDecoration(labelText: '이미지 출처')),
+                SizedBox(height: 8),
+                newImage != null
+                    ? ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.file(newImage!, height: 100, width: 100, fit: BoxFit.cover),
+                )
+                    : (newImageUrl != null
+                    ? ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.network(newImageUrl!, height: 100, width: 100, fit: BoxFit.cover),
+                )
+                    : Text("이미지가 없습니다.")),
+                TextButton.icon(
+                  icon: Icon(Icons.image),
+                  label: Text("이미지 변경"),
+                  onPressed: () async {
+                    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+                    if (pickedFile != null) {
+                      setState(() {
+                        newImage = File(pickedFile.path);
+                      });
+                    }
+                  },
+                ),
+                if (isUploading)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Row(
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(width: 10),
+                        Text("업로드 중...", style: TextStyle(color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: Text('취소')),
             ElevatedButton(
-              onPressed: () async {
+              onPressed: isUploading ? null : () async {
+                setState(() {
+                  isUploading = true;
+                });
+
                 if (newImage != null) {
                   newImageUrl = await _uploadImage(newImage!);
                 }
@@ -220,7 +257,7 @@ class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
                   'address': editAddressController.text.trim(),
                   'mainmenu': editMenuController.text.trim(),
                   'mainprice': int.tryParse(editPriceController.text.trim()) ?? 0,
-                  'imageURL': newImageUrl ?? currentData['imageURL'],  // ✅ 새 이미지 없으면 기존 유지
+                  'imageURL': newImageUrl ?? currentData['imageURL'],
                   'imageSource': editSourceController.text.trim(),
                 };
 
@@ -231,12 +268,16 @@ class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
                     .doc(id)
                     .update(updatedData);
 
+                setState(() {
+                  isUploading = false;
+                });
+
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('수정 완료!')),
                 );
               },
-              child: Text('저장'),
+              child: isUploading ? CircularProgressIndicator(color: Colors.white) : Text('저장'),
             ),
           ],
         ),
@@ -271,21 +312,69 @@ class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Column(
-          children: [
-            TextField(controller: _nameController, decoration: InputDecoration(labelText: '식당 이름')),
-            TextField(controller: _addressController, decoration: InputDecoration(labelText: '주소')),
-            TextField(controller: _mainMenuController, decoration: InputDecoration(labelText: '주요 메뉴')),
-            TextField(controller: _mainPriceController, decoration: InputDecoration(labelText: '가격'), keyboardType: TextInputType.number),
-            TextField(controller: _imageSourceController, decoration: InputDecoration(labelText: '이미지 출처')),
-            SizedBox(height: 8),
-            _imageFile != null ? Image.file(_imageFile!, height: 100) : Text("이미지를 선택하세요"),
-            Row(children: [
-              Expanded(child: ElevatedButton.icon(icon: Icon(Icons.image), label: Text("이미지 선택"), onPressed: _pickImage)),
-              Expanded(child: ElevatedButton.icon(onPressed: _addRestaurant, icon: Icon(Icons.add), label: Text('추가')),),
-            ],),
-
-          ],
+        Padding(
+          padding: EdgeInsets.all(10),
+          child: Column(
+            children: [
+              TextField(
+                controller: _nameController,
+                decoration: InputDecoration(labelText: '식당 이름'),
+              ),
+              TextField(
+                controller: _addressController,
+                decoration: InputDecoration(labelText: '주소'),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _mainMenuController,
+                      decoration: InputDecoration(labelText: '주요 메뉴'),
+                    ),
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      controller: _mainPriceController,
+                      decoration: InputDecoration(labelText: '가격'),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+              TextField(
+                controller: _imageSourceController,
+                decoration: InputDecoration(labelText: '이미지 출처'),
+              ),
+              SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _imageFile != null
+                      ? ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.file(_imageFile!, height: 60),
+                  )
+                      : Text("이미지를 선택하세요"),
+                  Row(
+                    children: [
+                      ElevatedButton.icon(
+                        icon: Icon(Icons.image),
+                        label: Text("이미지 선택"),
+                        onPressed: _pickImage,
+                      ),
+                      SizedBox(width: 10),
+                      ElevatedButton.icon(
+                        icon: Icon(Icons.add),
+                        label: Text('추가'),
+                        onPressed: _addRestaurant,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
@@ -301,18 +390,44 @@ class _RestaurantManagementTabState extends State<_RestaurantManagementTab> {
               return ListView(
                 children: snapshot.data!.docs.map((doc) {
                   final data = doc.data() as Map<String, dynamic>;
-                  return ListTile(
-                    leading: data['imageURL'] != null
-                        ? Image.network(data['imageURL'], width: 50, height: 50, fit: BoxFit.cover)
-                        : Icon(Icons.image),
-                    title: Text(data['name'] ?? '알 수 없음'),
-                    subtitle: Text('${data['address']} | ${data['mainmenu']} | ${data['mainprice']}원'),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(icon: Icon(Icons.edit), onPressed: () => _showEditDialog(doc.id, data)),
-                        IconButton(icon: Icon(Icons.delete), onPressed: () => _deleteRestaurant(doc.id)),
-                      ],
+                  return Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    margin: EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                    child: Padding(
+                      padding: EdgeInsets.all(10),
+                      child: Row(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: data['imageURL'] != null
+                                ? Image.network(data['imageURL'],
+                                width: 80, height: 80, fit: BoxFit.cover)
+                                : Icon(Icons.image, size: 80),
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(data['name'] ?? '알 수 없음',
+                                    style:
+                                    TextStyle(fontWeight: FontWeight.bold)),
+                                SizedBox(height: 5),
+                                Text('${data['address']}'),
+                                Text('${data['mainmenu']} | ${data['mainprice']}원'),
+                              ],
+                            ),
+                          ),
+                          Column(
+                            children: [
+                              IconButton(icon: Icon(Icons.edit), onPressed: () => _showEditDialog(doc.id, data)),
+                              IconButton(icon: Icon(Icons.delete), onPressed: () => _deleteRestaurant(doc.id)),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 }).toList(),

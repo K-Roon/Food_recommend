@@ -97,10 +97,10 @@ class UserInfoPage extends StatelessWidget {
 
   Future<void> _changePassword(BuildContext context) async {
     final TextEditingController currentPasswordController =
-        TextEditingController();
+    TextEditingController();
     final TextEditingController newPasswordController = TextEditingController();
     final TextEditingController confirmNewPasswordController =
-        TextEditingController();
+    TextEditingController();
 
     showDialog(
       context: _scaffoldKey.currentContext!,
@@ -136,7 +136,7 @@ class UserInfoPage extends StatelessWidget {
               final currentPassword = currentPasswordController.text.trim();
               final newPassword = newPasswordController.text.trim();
               final confirmNewPassword =
-                  confirmNewPasswordController.text.trim();
+              confirmNewPasswordController.text.trim();
 
               if (currentPassword.isEmpty ||
                   newPassword.isEmpty ||
@@ -190,12 +190,41 @@ class UserInfoPage extends StatelessWidget {
     );
   }
 
+  void _showAppInfo(BuildContext context) {
+    showAboutDialog(
+      context: context,
+      applicationName: 'Food Recommendation App',
+      applicationVersion: '1.0.3',
+      applicationIcon: Icon(Icons.food_bank),
+      children: [
+        Text('식사가 고민이신가요? 랜덤으로 추천해주는 식사를 먹어보시는건 어떨까요?'),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey, // Scaffold에 GlobalKey 추가
       appBar: AppBar(
         title: Text('내 정보'),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'app_info') {
+                _showAppInfo(context); // 앱 정보 표시
+              }
+            },
+            itemBuilder: (BuildContext context) {
+              return [
+                PopupMenuItem<String>(
+                  value: 'app_info',
+                  child: Text('앱 정보'),
+                ),
+              ];
+            },
+          ),
+        ],
       ),
       body: FutureBuilder<Map<String, dynamic>>(
         future: _fetchUserInfo(),
