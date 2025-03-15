@@ -197,7 +197,7 @@ class UserInfoPage extends StatelessWidget {
       applicationVersion: '1.0.3',
       applicationIcon: Icon(Icons.food_bank),
       children: [
-        Text('식사가 고민이신가요? 랜덤으로 추천해주는 식사를 먹어보시는건 어떨까요?'),
+        Text('식사가 고민이신가요? 랜덤으로 추천해주는 식사를 먹어보시는건 어떨까요?  '),
       ],
     );
   }

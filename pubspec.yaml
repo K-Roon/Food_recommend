@@ -31,7 +31,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  flutter_localizations: # Flutter에서 지역화(Localization) 지원
+  flutter_localizations:
     sdk: flutter
 
   # The following adds the Cupertino Icons font to your application.
